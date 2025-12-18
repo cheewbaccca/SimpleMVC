@@ -41,10 +41,11 @@ class UserModel extends Model
     
     public $salt = null;
     
+    public $failed_login_attempts = 0;
 
     public function insert()
     {
-        $sql = "INSERT INTO $this->tableName (timestamp, login, salt, pass, role, email) VALUES (:timestamp, :login, :salt, :pass, :role, :email)"; 
+        $sql = "INSERT INTO $this->tableName (timestamp, login, salt, pass, role, email, failed_login_attempts) VALUES (:timestamp, :login, :salt, :pass, :role, :email, :failed_login_attempts)";
         $st = $this->pdo->prepare ( $sql );
         $st->bindValue( ":timestamp", (new \DateTime('NOW'))->format('Y-m-d H:i:s'), \PDO::PARAM_STMT);
         $st->bindValue( ":login", $this->login, \PDO::PARAM_STR );
@@ -61,6 +62,7 @@ class UserModel extends Model
         
         $st->bindValue( ":role", $this->role, \PDO::PARAM_STR );
         $st->bindValue( ":email", $this->email, \PDO::PARAM_STR );
+        $st->bindValue( ":failed_login_attempts", $this->failed_login_attempts, \PDO::PARAM_INT );
         $st->execute();
         $this->id = $this->pdo->lastInsertId();
     }
@@ -69,18 +71,19 @@ class UserModel extends Model
     {
         // Если передан пустой пароль, не обновляем его
         if (empty($this->pass)) {
-            $sql = "UPDATE $this->tableName SET timestamp=:timestamp, login=:login, email=:email, role=:role WHERE id = :id";
+            $sql = "UPDATE $this->tableName SET timestamp=:timestamp, login=:login, email=:email, role=:role, failed_login_attempts=:failed_login_attempts WHERE id = :id";
             $st = $this->pdo->prepare ( $sql );
             
             $st->bindValue( ":timestamp", (new \DateTime('NOW'))->format('Y-m-d H:i:s'), \PDO::PARAM_STMT);
             $st->bindValue( ":login", $this->login, \PDO::PARAM_STR );
             $st->bindValue( ":email", $this->email, \PDO::PARAM_STR );
             $st->bindValue( ":role", $this->role, \PDO::PARAM_STR );
+            $st->bindValue( ":failed_login_attempts", $this->failed_login_attempts, \PDO::PARAM_INT );
             $st->bindValue( ":id", $this->id, \PDO::PARAM_INT );
             $st->execute();
         } else {
             // Обновляем пароль, если он был передан
-            $sql = "UPDATE $this->tableName SET timestamp=:timestamp, login=:login, pass=:pass, email=:email, role=:role WHERE id = :id";
+            $sql = "UPDATE $this->tableName SET timestamp=:timestamp, login=:login, pass=:pass, email=:email, role=:role, failed_login_attempts=:failed_login_attempts WHERE id = :id";
             $st = $this->pdo->prepare ( $sql );
             
             $st->bindValue( ":timestamp", (new \DateTime('NOW'))->format('Y-m-d H:i:s'), \PDO::PARAM_STMT);
@@ -94,6 +97,7 @@ class UserModel extends Model
             
             $st->bindValue( ":email", $this->email, \PDO::PARAM_STR );
             $st->bindValue( ":role", $this->role, \PDO::PARAM_STR );
+            $st->bindValue( ":failed_login_attempts", $this->failed_login_attempts, \PDO::PARAM_INT );
             $st->bindValue( ":id", $this->id, \PDO::PARAM_INT );
             $st->execute();
         }
@@ -122,23 +126,30 @@ class UserModel extends Model
      * Проверка логина и пароля пользователя.
      */
     public function getAuthData($login): ?array {
-	$sql = "SELECT salt, pass FROM users WHERE login = :login";
-	$st = $this->pdo->prepare($sql);
-	$st->bindValue(":login", $login, \PDO::PARAM_STR);
-	$st->execute();
-	$authData = $st->fetch();
-	return $authData ? $authData : null;
+ $sql = "SELECT salt, pass, failed_login_attempts FROM users WHERE login = :login";
+ $st = $this->pdo->prepare($sql);
+ $st->bindValue(":login", $login, \PDO::PARAM_STR);
+ $st->execute();
+ $authData = $st->fetch();
+ return $authData ? $authData : null;
     }
     
     /**
      * Проверяем активность пользователя.
      */
     public function getRole($login): array {
-	$sql = "SELECT role FROM users WHERE login = :login";
-	$st = $this->pdo->prepare($sql);
-	$st->bindValue(":login", $login, \PDO::PARAM_STR);
-	$st->execute();	
-	return $st->fetch();
+ $sql = "SELECT role, failed_login_attempts FROM users WHERE login = :login";
+ $st = $this->pdo->prepare($sql);
+ $st->bindValue(":login", $login, \PDO::PARAM_STR);
+ $st->execute();
+ return $st->fetch();
+    }
+    public function updateFailedLoginAttempts($login, $attempts): void {
+        $sql = "UPDATE $this->tableName SET failed_login_attempts = :failed_login_attempts WHERE login = :login";
+        $st = $this->pdo->prepare($sql);
+        $st->bindValue(":failed_login_attempts", $attempts, \PDO::PARAM_INT);
+        $st->bindValue(":login", $login, \PDO::PARAM_STR);
+        $st->execute();
     }
 
 }

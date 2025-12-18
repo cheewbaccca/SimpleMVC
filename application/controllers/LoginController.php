@@ -34,6 +34,12 @@ class LoginController extends \ItForFree\SimpleMVC\MVC\Controller
                 $this->redirect(WebRouter::link("homepage/index"));
             }
             else {
+                $UserModel = new \application\models\UserModel();
+                $authData = $UserModel->getAuthData($login);
+                if ($authData) {
+                    $failedAttempts = $authData['failed_login_attempts'] ?? 0;
+                    $UserModel->updateFailedLoginAttempts($login, $failedAttempts + 3);
+                }
                 $this->redirect(WebRouter::link("login/login&auth=deny"));
             }
         }
