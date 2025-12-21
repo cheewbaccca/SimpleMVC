@@ -110,17 +110,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Простой запрос к нашей функции
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', '<?= WebRouter::link("admin/notes/getSubcategories", ["categoryId" => ""]) ?>' + categoryId, true);
+        xhr.open('GET', '<?= WebRouter::link("admin/notes/getSubcategories") ?>?categoryId=' + categoryId, true);
         xhr.onload = function() {
             if (xhr.status === 200) {
                 try {
                     var subcategories = JSON.parse(xhr.responseText);
+                    // Очищаем список подкатегорий перед добавлением новых
+                    subcategorySelect.innerHTML = '<option value="">-- Без подкатегории --</option>';
                     subcategories.forEach(function(subcat) {
                         var option = document.createElement('option');
                         option.value = subcat.id;
                         option.textContent = subcat.name;
                         // Выбираем текущую подкатегорию статьи
-                        if (subcat.id == <?= $viewNotes->subcategoryId ?? 'null' ?>) {
+                        if (<?= $viewNotes->subcategoryId ?? 'null' ?> !== null && subcat.id == <?= $viewNotes->subcategoryId ?? 'null' ?>) {
                             option.selected = true;
                         }
                         subcategorySelect.appendChild(option);
@@ -128,7 +130,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch(e) {
                     console.error('Error parsing JSON:', e);
                 }
+            } else {
+                console.error('Error loading subcategories: ' + xhr.status);
             }
+        };
+        xhr.onerror = function() {
+            console.error('Network error occurred while loading subcategories');
         };
         xhr.send();
     }

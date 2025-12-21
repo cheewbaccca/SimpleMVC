@@ -192,8 +192,8 @@ class Note extends BaseExampleModel
     {
         $sql = "SELECT u.*
                 FROM users u
-                JOIN article_users au ON u.id = au.user_id
-                WHERE au.article_id = :article_id
+                JOIN article_authors aa ON u.id = aa.user_id
+                WHERE aa.article_id = :article_id
                 ORDER BY u.login";
 
         $st = $this->pdo->prepare($sql);
@@ -205,7 +205,7 @@ class Note extends BaseExampleModel
 
     public function addAuthor(int $userId): bool
     {
-        $sql = "INSERT IGNORE INTO article_users (article_id, user_id)
+        $sql = "INSERT IGNORE INTO article_authors (article_id, user_id)
                 VALUES (:article_id, :user_id)";
 
         $st = $this->pdo->prepare($sql);
@@ -217,7 +217,7 @@ class Note extends BaseExampleModel
 
     public function removeAuthor(int $userId): bool
     {
-        $sql = "DELETE FROM article_users
+        $sql = "DELETE FROM article_authors
                 WHERE article_id = :article_id AND user_id = :user_id";
 
         $st = $this->pdo->prepare($sql);

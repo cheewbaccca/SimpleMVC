@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Простой запрос к нашей функции
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', '<?= \ItForFree\SimpleMVC\Router\WebRouter::link("admin/notes/getSubcategories", ["categoryId" => ""]) ?>' + categoryId, true);
+        xhr.open('GET', '<?= \ItForFree\SimpleMVC\Router\WebRouter::link("admin/notes/getSubcategories") ?>?categoryId=' + categoryId, true);
         xhr.onload = function() {
             if (xhr.status === 200) {
                 try {
@@ -91,7 +91,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 } catch(e) {
                     console.error('Error parsing JSON:', e);
                 }
+            } else {
+                console.error('Error loading subcategories: ' + xhr.status);
             }
+        };
+        xhr.onerror = function() {
+            console.error('Network error occurred while loading subcategories');
         };
         xhr.send();
     }

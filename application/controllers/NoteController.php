@@ -26,6 +26,9 @@ class NoteController extends \ItForFree\SimpleMVC\MVC\Controller
             return;
         }
         
+        // Загружаем авторов статьи
+        $article->authors = $noteModel->getAuthorsForArticle((int)$id);
+        
         $this->view->addVar('viewNotes', $article);
         $this->view->render('note/view-item.php');
     }

@@ -21,8 +21,8 @@ class AuthUser extends User
 	    $passForCheck = password_verify($pass, $siteAuthData['pass']);
 	    if ($passForCheck) {
 		$result = true;
-		// Сбросить счетчик неудачных попыток входа при успешной аутентификации
-		$User->resetLoginAttempts($login);
+		// Счетчик неудачных попыток входа не сбрасывается при успешной аутентификации
+		// $User->resetLoginAttempts($login);
 	    }
 	}
         return $result;

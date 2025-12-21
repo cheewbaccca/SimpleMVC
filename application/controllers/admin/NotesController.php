@@ -57,6 +57,9 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
                 // Обработка поля isActive
                 $newNotes->isActive = !empty($_POST['isActive']);
                 
+                // Преобразование subcategoryId к числовому типу
+                $newNotes->subcategoryId = !empty($_POST['subcategoryId']) ? (int)$_POST['subcategoryId'] : null;
+                
                 $newNotes->insert();
                 
                 // Обработка авторов, если они были выбраны
@@ -117,6 +120,8 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
                     // Обрабатываем subcategoryId
                     if (isset($_POST['subcategoryId'])) {
                         $existingNote->subcategoryId = !empty($_POST['subcategoryId']) ? (int)$_POST['subcategoryId'] : null;
+                    } else {
+                        $existingNote->subcategoryId = null;
                     }
                     
                     // Обрабатываем поле isActive
@@ -124,6 +129,26 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
                     
                     // Обновляем статью
                     $existingNote->update();
+                    
+                    // Обработка авторов, если они были выбраны
+                    if (isset($_POST['authorIds']) && is_array($_POST['authorIds'])) {
+                        // Сначала удаляем всех текущих авторов
+                        $sql = "DELETE FROM article_authors WHERE article_id = :article_id";
+                        $st = $existingNote->pdo->prepare($sql);
+                        $st->bindValue(":article_id", (int)$existingNote->id, \PDO::PARAM_INT);
+                        $st->execute();
+                        
+                        // Затем добавляем новых авторов
+                        foreach ($_POST['authorIds'] as $userId) {
+                            $existingNote->addAuthor((int)$userId);
+                        }
+                    } else {
+                        // Если авторы не выбраны, удаляем всех текущих авторов
+                        $sql = "DELETE FROM article_authors WHERE article_id = :article_id";
+                        $st = $existingNote->pdo->prepare($sql);
+                        $st->bindValue(":article_id", (int)$existingNote->id, \PDO::PARAM_INT);
+                        $st->execute();
+                    }
                 }
                 
                 $this->redirect($Url::link("admin/notes/index"));
@@ -141,6 +166,9 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
                 $this->redirect($Url::link("admin/notes/index"));
                 return;
             }
+            
+            // Загружаем текущих авторов статьи
+            $viewNotes->authors = $Note->getAuthorsForArticle((int)$id);
             
             $editNoteTitle = "Редактирование заметки";
             
@@ -164,6 +192,12 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
             if (!empty($_POST['deleteNote'])) {
                 $Note = new Note();
                 $newNotes = $Note->loadFromArray($_POST);
+                
+                // При удалении также нужно убедиться в правильной типизации
+                if (isset($_POST['id'])) {
+                    $newNotes->id = (int)$_POST['id'];
+                }
+                
                 $newNotes->delete();
                 
                 $this->redirect($Url::link("admin/notes/index"));
