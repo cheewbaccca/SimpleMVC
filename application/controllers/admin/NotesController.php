@@ -14,22 +14,32 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
     
     public string $layoutPath = 'admin-main.php';
     
+    protected array $rules = [
+         ['allow' => true, 'roles' => ['admin']],
+         ['allow' => false, 'roles' => ['?', '@']],
+    ];
+    
     
     public function indexAction()
     {
         $Note = new Note();
-
+        
+        $notes = $Note->getList()['results'];
+        $this->view->addVar('notes', $notes);
+        $this->view->render('note/index.php');
+    }
+    
+    public function viewAction()
+    {
+        $Note = new Note();
         $noteId = $_GET['id'] ?? null;
         
-        if ($noteId) { // если указан конктреный пользователь
+        if ($noteId) {
             $viewNotes = $Note->getById($_GET['id']);
             $this->view->addVar('viewNotes', $viewNotes);
             $this->view->render('note/view-item.php');
-        } else { // выводим полный список
-            
-            $notes = $Note->getList()['results'];
-            $this->view->addVar('notes', $notes);
-            $this->view->render('note/index.php');
+        } else {
+            $this->redirect('/admin/notes/index');
         }
     }
     
@@ -43,9 +53,21 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
             if (!empty($_POST['saveNewNote'])) {
                 $Note = new Note();
                 $newNotes = $Note->loadFromArray($_POST);
-                $newNotes->insert(); 
+                
+                // Обработка поля isActive
+                $newNotes->isActive = !empty($_POST['isActive']);
+                
+                $newNotes->insert();
+                
+                // Обработка авторов, если они были выбраны
+                if (!empty($_POST['authorIds']) && is_array($_POST['authorIds'])) {
+                    foreach ($_POST['authorIds'] as $userId) {
+                        $newNotes->addAuthor((int)$userId);
+                    }
+                }
+                
                 $this->redirect($Url::link("admin/notes/index"));
-            } 
+            }
             elseif (!empty($_POST['cancel'])) {
                 $this->redirect($Url::link("admin/notes/index"));
             }
@@ -63,31 +85,69 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
      */
     public function editAction()
     {
-        $id = $_GET['id'];
+        // Определяем ID из GET или POST параметров
+        $id = $_GET['id'] ?? ($_POST['id'] ?? null);
         $Url = Config::get('core.router.class');
+        
+        if ($id === null) {
+            // Если ID не передан, перенаправляем на страницу со списком статей
+            $this->redirect($Url::link("admin/notes/index"));
+            return;
+        }
         
         if (!empty($_POST)) { // это выполняется нормально.
             
             if (!empty($_POST['saveChanges'] )) {
                 $Note = new Note();
-                $newNotes = $Note->loadFromArray($_POST);
-                $newNotes->update();
-                $this->redirect($Url::link("admin/notes/index&id=$id"));
-            } 
+                
+                // Загружаем существующую статью для обновления
+                $existingNote = $Note->getById((int)$id);
+                
+                if ($existingNote) {
+                    // Обновляем поля существующей статьи значениями из POST
+                    $existingNote->title = $_POST['title'] ?? $existingNote->title;
+                    $existingNote->content = $_POST['content'] ?? $existingNote->content;
+                    $existingNote->summary = $_POST['summary'] ?? $existingNote->summary;
+                    
+                    // Обрабатываем categoryId
+                    if (isset($_POST['categoryId'])) {
+                        $existingNote->categoryId = !empty($_POST['categoryId']) ? (int)$_POST['categoryId'] : null;
+                    }
+                    
+                    // Обрабатываем subcategoryId
+                    if (isset($_POST['subcategoryId'])) {
+                        $existingNote->subcategoryId = !empty($_POST['subcategoryId']) ? (int)$_POST['subcategoryId'] : null;
+                    }
+                    
+                    // Обрабатываем поле isActive
+                    $existingNote->isActive = !empty($_POST['isActive']);
+                    
+                    // Обновляем статью
+                    $existingNote->update();
+                }
+                
+                $this->redirect($Url::link("admin/notes/index"));
+            }
             elseif (!empty($_POST['cancel'])) {
-                $this->redirect($Url::link("admin/notes/index&id=$id"));
+                $this->redirect($Url::link("admin/notes/index"));
             }
         }
         else {
             $Note = new Note();
             $viewNotes = $Note->getById($id);
             
+            if (!$viewNotes) {
+                // Если статья не найдена, перенаправляем на страницу со списком статей
+                $this->redirect($Url::link("admin/notes/index"));
+                return;
+            }
+            
             $editNoteTitle = "Редактирование заметки";
             
             $this->view->addVar('viewNotes', $viewNotes);
             $this->view->addVar('editNoteTitle', $editNoteTitle);
             
-            $this->view->render('note/edit.php');   
+            $this->view->render('note/edit.php');
         }
         
     }
@@ -110,7 +170,7 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
               
             }
             elseif (!empty($_POST['cancel'])) {
-                $this->redirect($Url::link("admin/notes/edit&id=$id"));
+                $this->redirect($Url::link("admin/notes/edit", ['id' => $id]));
             }
         }
         else {
@@ -126,5 +186,24 @@ class NotesController extends \ItForFree\SimpleMVC\MVC\Controller
         }
     }
     
-    
+    public function getSubcategoriesAction()
+    {
+        $categoryId = $_GET['categoryId'] ?? null;
+        
+        if (!$categoryId) {
+            echo json_encode([]);
+            return;
+        }
+        
+        $subcategoryModel = new \application\models\Subcategory();
+        $sql = "SELECT id, name FROM subcategories WHERE categoryId = :categoryId ORDER BY name";
+        $st = $subcategoryModel->pdo->prepare($sql);
+        $st->bindValue(":categoryId", $categoryId, \PDO::PARAM_INT);
+        $st->execute();
+        $subcategories = $st->fetchAll(\PDO::FETCH_ASSOC);
+        
+        header('Content-Type: application/json');
+        echo json_encode($subcategories);
+    }
+
 }

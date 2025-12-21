@@ -2,28 +2,31 @@
 
 namespace application\controllers;
 
-/**
- * Контроллер для домашней страницы
- */
+use application\models\Note;
+
 class HomepageController extends \ItForFree\SimpleMVC\MVC\Controller
 {
-    /**
-     * @var string Название страницы
-     */
-    public $homepageTitle = "Домашняя страница";
-    
-    /**
-     * @var string Пусть к файлу макета 
-     */
     public string $layoutPath = 'main.php';
-      
-    /**
-     * Выводит на экран страницу "Домашняя страница"
-     */
+
     public function indexAction()
     {
-        $this->view->addVar('homepageTitle', $this->homepageTitle); // передаём переменную по view
+        $articleModel = new Note();
+
+        // Модифицируем запрос, чтобы получить только активные статьи
+        $sql = "SELECT * FROM {$articleModel->tableName} WHERE isActive = 1 ORDER BY {$articleModel->orderBy} LIMIT :numResults";
+        $st = $articleModel->pdo->prepare($sql);
+        $st->bindValue(':numResults', 10, \PDO::PARAM_INT);
+        $st->execute();
+        $articles = $st->fetchAll(\PDO::FETCH_OBJ);
+
+        foreach ($articles as $article) {
+            // Эти свойства должны быть ОБЪЯВЛЕНЫ в модели (см. ниже)
+            $article->categoryName    = $articleModel->getCategoryNameForId($article->categoryId);
+            $article->subcategoryName = $articleModel->getSubcategoryNameForId($article->subcategoryId);
+            $article->authors         = $articleModel->getAuthorsForArticle($article->id);
+        }
+
+        $this->view->addVar('articles', $articles);
         $this->view->render('homepage/index.php');
     }
 }
-

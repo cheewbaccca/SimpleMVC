@@ -31,15 +31,14 @@ class LoginController extends \ItForFree\SimpleMVC\MVC\Controller
             $pass = $_POST['password'];
             $User = Config::getObject('core.user.class');
             if($User->login($login, $pass)) {
-                $this->redirect(WebRouter::link("homepage/index"));
+                // Проверяем роль пользователя и перенаправляем соответственно
+                if ($User->role === 'admin') {
+                    $this->redirect(WebRouter::link("admin/notes/index"));
+                } else {
+                    $this->redirect(WebRouter::link("homepage/index")); // перенаправляем обычного пользователя на главную страницу
+                }
             }
             else {
-                $UserModel = new \application\models\UserModel();
-                $authData = $UserModel->getAuthData($login);
-                if ($authData) {
-                    $failedAttempts = $authData['failed_login_attempts'] ?? 0;
-                    $UserModel->updateFailedLoginAttempts($login, $failedAttempts + 3);
-                }
                 $this->redirect(WebRouter::link("login/login&auth=deny"));
             }
         }
@@ -59,5 +58,4 @@ class LoginController extends \ItForFree\SimpleMVC\MVC\Controller
         $this->redirect(WebRouter::link("login/login"));
     }
 }
-
 

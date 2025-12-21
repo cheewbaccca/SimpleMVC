@@ -5,7 +5,7 @@
 $config = [
     'core' => [ // подмассив используемый самим ядром фреймворка
         'db' => [
-            'dns' => 'mysql:host=localhost;dbname=dbname',
+            'dns' => 'mysql:host=localhost;dbname=dbname;charset=utf8',
             'username' => 'root',
             'password' => '1234'
         ],

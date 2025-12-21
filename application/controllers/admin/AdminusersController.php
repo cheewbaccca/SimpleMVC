@@ -74,10 +74,10 @@ class AdminusersController extends \ItForFree\SimpleMVC\MVC\Controller
                 $Adminusers = new UserModel();
                 $newAdminusers = $Adminusers->loadFromArray($_POST);
                 $newAdminusers->update();
-                $this->redirect($Url::link("admin/adminusers/index&id=$id"));
+                $this->redirect($Url::link("admin/adminusers/index", ['id' => $id]));
             } 
             elseif (!empty($_POST['cancel'])) {
-                $this->redirect($Url::link("admin/adminusers/index&id=$id"));
+                $this->redirect($Url::link("admin/adminusers/index", ['id' => $id]));
             }
         } else {
             $Adminusers = new UserModel();
@@ -111,7 +111,7 @@ class AdminusersController extends \ItForFree\SimpleMVC\MVC\Controller
               
             }
             elseif (!empty($_POST['cancel'])) {
-                $this->redirect($Url::link("admin/adminusers/edit&id=$id"));
+                $this->redirect($Url::link("admin/adminusers/edit", ['id' => $id]));
             }
         } else {
             
