@@ -13,7 +13,7 @@
     </div>
     <div class="form-group">
         <label for="password" >Введите пароль</label>
-        <input type="password" name="password"  class="form-control" id="userName"  name="userName" >
+        <input type="password" name="password"  class="form-control" id="password" >
     </div>
     <input type="submit" class="btn btn-primary" name="login" value="Сохранить">
    
